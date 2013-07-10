@@ -22,10 +22,13 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
 import org.apache.any23.extractor.ExtractionException;
+import org.apache.any23.extractor.Extractor;
+import org.apache.any23.extractor.IssueReport.Issue;
 import org.apache.any23.source.ByteArrayDocumentSource;
 import org.apache.any23.source.DocumentSource;
 import org.apache.any23.writer.TripleHandlerException;
 import org.apache.any23.Any23;
+import org.apache.any23.ExtractionReport;
 import org.fcrepo.triplegenerators.tei.xslt.LoggingErrorListener;
 import org.slf4j.Logger;
 
@@ -87,7 +90,14 @@ public class TeiTripleGenerator {
             new ByteArrayDocumentSource(rdfXmlBytes,
                     "http://dummy.absolute.url", "application/rdf+xml");
         try (final ModelTripleHandler handler = new ModelTripleHandler()) {
-            any23.extract(source, handler);
+            final ExtractionReport report = any23.extract(source, handler);
+            for (final Extractor<?> extractor : report.getMatchingExtractors()) {
+                for (final Issue issue : report.getExtractorIssues(extractor
+                        .getDescription().getExtractorName())) {
+                    LOGGER.error("Extraction issue: ({},{}): {}\n", issue
+                            .getCol(), issue.getRow(), issue.getMessage());
+                }
+            }
             final Model results = handler.getModel();
             return new DatasetImpl(results);
         }

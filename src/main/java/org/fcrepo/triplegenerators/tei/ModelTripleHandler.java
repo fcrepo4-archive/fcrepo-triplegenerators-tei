@@ -51,7 +51,7 @@ public class ModelTripleHandler implements TripleHandler, AutoCloseable {
                 model.createProperty(p.getNamespace(), p.getLocalName()),
                     objectNode(o));
         model.add(triple);
-        LOGGER.debug("Added triple: {}", triple.asTriple().toString());
+        LOGGER.trace("Added triple: {}", triple.asTriple().toString());
     }
 
     /**
