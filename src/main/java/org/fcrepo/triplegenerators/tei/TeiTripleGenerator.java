@@ -1,3 +1,18 @@
+/**
+ * Copyright 2013 DuraSpace, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 package org.fcrepo.triplegenerators.tei;
 
@@ -37,6 +52,10 @@ import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.sparql.core.DatasetImpl;
 
 
+/**
+ * @author ajs6f
+ * @date Jul 10, 2013
+ */
 public class TeiTripleGenerator {
 
     private static Transformer addIdsXform;
@@ -47,6 +66,11 @@ public class TeiTripleGenerator {
 
     private static final Logger LOGGER = getLogger(TeiTripleGenerator.class);
 
+    /**
+     * @throws TransformerConfigurationException
+     * @throws TransformerFactoryConfigurationError
+     * @throws IOException
+     */
     public TeiTripleGenerator() throws TransformerConfigurationException,
             TransformerFactoryConfigurationError, IOException {
         // initialize XSLT
@@ -69,6 +93,15 @@ public class TeiTripleGenerator {
         }
     }
 
+    /**
+     * @param teiLocation
+     * @return A {@link Dataset} with extracted triples.
+     * @throws IOException
+     * @throws TransformerConfigurationException
+     * @throws TransformerException
+     * @throws ExtractionException
+     * @throws TripleHandlerException
+     */
     public Dataset getTriples(@HeaderParam("Content-Location")
     final URL teiLocation) throws IOException,
     TransformerConfigurationException, TransformerException,
@@ -79,6 +112,15 @@ public class TeiTripleGenerator {
         }
     }
 
+    /**
+     * @param resource
+     * @return A {@link Dataset} with extracted triples.
+     * @throws TransformerConfigurationException
+     * @throws IOException
+     * @throws TransformerException
+     * @throws ExtractionException
+     * @throws TripleHandlerException
+     */
     public Dataset getTriples(final InputStream resource)
         throws TransformerConfigurationException, IOException,
         TransformerException, ExtractionException, TripleHandlerException {
@@ -103,6 +145,13 @@ public class TeiTripleGenerator {
         }
     }
 
+    /**
+     * @param resource
+     * @return A {@link Result} of RDF/XML
+     * @throws IOException
+     * @throws TransformerConfigurationException
+     * @throws TransformerException
+     */
     protected StreamResult createRDFXML(final InputStream resource)
         throws IOException, TransformerConfigurationException,
         TransformerException {

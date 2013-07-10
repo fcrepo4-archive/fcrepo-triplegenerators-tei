@@ -7,7 +7,7 @@
     <version>4.0.0-alpha-2-SNAPSHOT</version>
   </parent>
   <artifactId>fcrepo-triplegenerators-tei</artifactId>
-  <packaging>war</packaging>
+
   <name>Fedora TEI triple generator.</name>
   <description>Generates RDF triples from TEI documents.</description>
 
