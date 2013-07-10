@@ -37,7 +37,7 @@
          Declare namespaces for rdf and for Dublin Core terms. -->
 
     <xsl:template match="/" name="root">
-        <xsl:message>Executing root template.</xsl:message>
+        <!--<xsl:message>Executing root template.</xsl:message>-->
         <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
             xmlns:dct="http://purl.org/dc/terms/">
 
@@ -207,9 +207,9 @@
     <xsl:template name="get_parent">
         <xsl:param name="ABOUT"/>
         <xsl:param name="PARENT"/>
-        <xsl:message>Entered get_parent with $ABOUT: <xsl:value-of
+        <!--<xsl:message>Entered get_parent with $ABOUT: <xsl:value-of
                 select="$ABOUT"/> and $PARENT: <xsl:value-of select="$PARENT"
-            /></xsl:message>
+            /></xsl:message>-->
         <rdf:Description>
             <xsl:attribute name="rdf:about">
                 <xsl:value-of select="concat($MAN_ID,'#',$ABOUT)"/>

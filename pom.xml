@@ -18,10 +18,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.sun.jersey</groupId>
-      <artifactId>jersey-core</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.any23</groupId>
       <artifactId>apache-any23-core</artifactId>
       <version>0.8.1-SNAPSHOT</version>

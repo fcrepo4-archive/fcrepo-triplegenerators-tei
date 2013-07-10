@@ -10,10 +10,7 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.URL;
-import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -32,9 +29,11 @@ import org.apache.any23.Any23;
 import org.fcrepo.triplegenerators.tei.xslt.LoggingErrorListener;
 import org.slf4j.Logger;
 
+import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.sparql.core.DatasetImpl;
 
-@Path("/")
+
 public class TeiTripleGenerator {
 
     private static Transformer addIdsXform;
@@ -48,7 +47,6 @@ public class TeiTripleGenerator {
     public TeiTripleGenerator() throws TransformerConfigurationException,
             TransformerFactoryConfigurationError, IOException {
         // initialize XSLT
-
         final TransformerFactory tf =
             newInstance("net.sf.saxon.TransformerFactoryImpl", null);
         tf.setErrorListener(new LoggingErrorListener());
@@ -68,8 +66,7 @@ public class TeiTripleGenerator {
         }
     }
 
-    @GET
-    public Model getTriples(@HeaderParam("Content-Location")
+    public Dataset getTriples(@HeaderParam("Content-Location")
     final URL teiLocation) throws IOException,
     TransformerConfigurationException, TransformerException,
     ExtractionException, TripleHandlerException {
@@ -79,8 +76,7 @@ public class TeiTripleGenerator {
         }
     }
 
-    @POST
-    public Model getTriples(final InputStream resource)
+    public Dataset getTriples(final InputStream resource)
         throws TransformerConfigurationException, IOException,
         TransformerException, ExtractionException, TripleHandlerException {
 
@@ -90,9 +86,10 @@ public class TeiTripleGenerator {
         final DocumentSource source =
             new ByteArrayDocumentSource(rdfXmlBytes,
                     "http://dummy.absolute.url", "application/rdf+xml");
-        try (final ModelTripleHandler triples = new ModelTripleHandler()) {
-            any23.extract(source, triples);
-            return triples.getModel();
+        try (final ModelTripleHandler handler = new ModelTripleHandler()) {
+            any23.extract(source, handler);
+            final Model results = handler.getModel();
+            return new DatasetImpl(results);
         }
     }
 

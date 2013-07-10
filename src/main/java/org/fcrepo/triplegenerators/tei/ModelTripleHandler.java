@@ -86,7 +86,6 @@ public class ModelTripleHandler implements TripleHandler, AutoCloseable {
      */
     @Override
     public void close() throws TripleHandlerException {
-        model.removeAll();
     }
 
     /*

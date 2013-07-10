@@ -8,7 +8,7 @@
   <logger name="org.fcrepo" additivity="false" level="DEBUG">
     <appender-ref ref="STDOUT"/>
   </logger>
-  <logger name="com.sun.org.apache.xalan" additivity="false" level="DEBUG">
+  <logger name="com.hp.hpl.jena.rdf" additivity="false" level="DEBUG">
     <appender-ref ref="STDOUT"/>
   </logger>
   <root additivity="false" level="WARN">
