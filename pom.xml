@@ -42,7 +42,21 @@
           <groupId>xerces</groupId>
           <artifactId>xercesImpl</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.apache.tika</groupId>
+          <artifactId>tika-core</artifactId>
+        </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-core</artifactId>
+      <version>1.4</version>
+    </dependency>
+    <dependency>
+      <groupId>net.sf.saxon</groupId>
+      <artifactId>Saxon-HE</artifactId>
+      <version>9.5.1-1</version>
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -61,7 +75,7 @@
     </repository>
   </repositories>
 
-  <build>
+ <!--   <build>
     <plugins>
       <plugin>
         <artifactId>maven-enforcer-plugin</artifactId>
@@ -78,6 +92,6 @@
         </configuration>
       </plugin>
     </plugins>
-  </build>
+  </build> -->
 
 </project>
