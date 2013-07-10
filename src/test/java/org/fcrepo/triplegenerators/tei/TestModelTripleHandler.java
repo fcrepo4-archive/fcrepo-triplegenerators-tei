@@ -1,14 +1,12 @@
 package org.fcrepo.triplegenerators.tei;
 
 
-import static com.hp.hpl.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Set;
 
 import org.apache.any23.Any23;
 import org.apache.any23.extractor.ExtractionException;
@@ -20,6 +18,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 
+import com.hp.hpl.jena.rdf.model.Model;
+
 /**
  * Tests for {@link SetTripleHandler}
  *
@@ -28,7 +28,7 @@ import org.slf4j.Logger;
  */
 public class TestModelTripleHandler extends ModelTripleHandler {
 
-    private static final Logger logger = getLogger(TestModelTripleHandler.class);
+    private static final Logger LOGGER = getLogger(TestModelTripleHandler.class);
 
     private final Any23 any23 = new Any23();
 
@@ -44,11 +44,11 @@ public class TestModelTripleHandler extends ModelTripleHandler {
     }
 
     /**
-     * "Zeros-out" the {@link Set} of {@link Triple}s being accumulated.
+     * "Zeros-out" the {@link Model} being accumulated.
      */
     @After
     public void resetModel() {
-        this.model = createDefaultModel();
+        reset();
     }
 
     /**
@@ -62,7 +62,7 @@ public class TestModelTripleHandler extends ModelTripleHandler {
     @Test
     public void testOneTriple() throws IOException, ExtractionException,
             TripleHandlerException {
-        logger.info("Running testOneTriple()...");
+        LOGGER.info("Running testOneTriple()...");
         any23.extract(rdfXmlSource, this);
         assertTrue(
                 "Didn't find appropriate triple!",
@@ -71,7 +71,7 @@ public class TestModelTripleHandler extends ModelTripleHandler {
                                 model.createResource("info:fedora/uva-lib:1038847"),
                                 model.createProperty("http://fedora.lib.virginia.edu/relationships#testPredicate"),
                                 model.createResource("info:test/resource")));
-        logger.info("Found appropriate triple.");
+        LOGGER.info("Found appropriate triple.");
         close();
     }
 
@@ -87,7 +87,7 @@ public class TestModelTripleHandler extends ModelTripleHandler {
     @Test
     public void testOneTripleWithLiteral() throws IOException,
             ExtractionException, TripleHandlerException {
-        logger.info("Running testOneTripleWithLiteral()...");
+        LOGGER.info("Running testOneTripleWithLiteral()...");
         any23.extract(rdfXmlSource, this);
         assertTrue(
                 "Didn't find appropriate triple!",
@@ -96,7 +96,7 @@ public class TestModelTripleHandler extends ModelTripleHandler {
                                 model.createResource("info:fedora/uva-lib:1038847"),
                                 model.createProperty("http://fedora.lib.virginia.edu/relationships#testPredicateWithLiteral"),
                                 model.createLiteral("literal value")));
-        logger.info("Found appropriate triple.");
+        LOGGER.info("Found appropriate triple.");
         close();
     }
 
@@ -114,7 +114,7 @@ public class TestModelTripleHandler extends ModelTripleHandler {
     @Test
     public void testOneTripleWithRelativeUri() throws IOException,
             ExtractionException, TripleHandlerException {
-        logger.info("Running testOneTripleWithRelativeUri()...");
+        LOGGER.info("Running testOneTripleWithRelativeUri()...");
         any23.extract(rdfXmlSource, this);
         assertTrue(
                 "Didn't find appropriate triple!",
@@ -123,7 +123,7 @@ public class TestModelTripleHandler extends ModelTripleHandler {
                                 model.createResource("info:fedora/uva-lib:1038847"),
                                 model.createProperty("http://fedora.lib.virginia.edu/relationships#testPredicateWithLiteral"),
                                 model.createLiteral("/relative/uri/")));
-        logger.info("Found appropriate triple.");
+        LOGGER.info("Found appropriate triple.");
         close();
     }
 
@@ -133,12 +133,12 @@ public class TestModelTripleHandler extends ModelTripleHandler {
      */
     @Test
     public void testSetContentLength() {
-        logger.info("Running testSetContentLength()...");
+        LOGGER.info("Running testSetContentLength()...");
         try {
             setContentLength(0);
             fail("setContentLength() didn't throw an UnsupportedOperationException!");
         } catch (final UnsupportedOperationException e) {
-            logger.info("Found correct behavior for setContentLength().");
+            LOGGER.info("Found correct behavior for setContentLength().");
         }
     }
 

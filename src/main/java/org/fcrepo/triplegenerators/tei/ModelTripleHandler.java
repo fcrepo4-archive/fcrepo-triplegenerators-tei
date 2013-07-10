@@ -31,7 +31,7 @@ public class ModelTripleHandler implements TripleHandler, AutoCloseable {
     /**
      * A {@link Model} of {@link Triple}s we are collecting.
      */
-    protected Model model = createDefaultModel();
+    protected final Model model = createDefaultModel();
 
     private static final Logger LOGGER = getLogger(ModelTripleHandler.class);
 
@@ -86,7 +86,7 @@ public class ModelTripleHandler implements TripleHandler, AutoCloseable {
      */
     @Override
     public void close() throws TripleHandlerException {
-        model = null;
+        model.removeAll();
     }
 
     /*
@@ -148,5 +148,9 @@ public class ModelTripleHandler implements TripleHandler, AutoCloseable {
     @Override
     public void closeContext(final ExtractionContext ec)
         throws TripleHandlerException {
+    }
+
+    public void reset() {
+        model.removeAll();
     }
 }
