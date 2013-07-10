@@ -95,7 +95,7 @@ public class TestModelTripleHandler extends ModelTripleHandler {
                         .contains(
                                 model.createResource("info:fedora/uva-lib:1038847"),
                                 model.createProperty("http://fedora.lib.virginia.edu/relationships#testPredicateWithLiteral"),
-                                model.createResource("literal value")));
+                                model.createLiteral("literal value")));
         logger.info("Found appropriate triple.");
         close();
     }
@@ -122,7 +122,7 @@ public class TestModelTripleHandler extends ModelTripleHandler {
                         .contains(
                                 model.createResource("info:fedora/uva-lib:1038847"),
                                 model.createProperty("http://fedora.lib.virginia.edu/relationships#testPredicateWithLiteral"),
-                                model.createResource("/relative/uri/")));
+                                model.createLiteral("/relative/uri/")));
         logger.info("Found appropriate triple.");
         close();
     }

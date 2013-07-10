@@ -4,8 +4,6 @@ import static com.hp.hpl.jena.rdf.model.ModelFactory.createDefaultModel;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.net.URISyntaxException;
-import java.util.Set;
-
 import org.apache.any23.extractor.ExtractionContext;
 import org.apache.any23.writer.TripleHandler;
 import org.apache.any23.writer.TripleHandlerException;
@@ -20,9 +18,9 @@ import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Statement;
 
 /**
- * Utility class to produce a set of triples from a stream of triples produced
+ * Utility class to produce a {@link Model} from a stream of triples produced
  * by Any23 parsing. Most of {@link TripleHandler}'s methods are unimplemented,
- * because this class expects to produce nothing other than a {@link Set} of the
+ * because this class expects to produce nothing other than a {@link Model} of the
  * triples emitted into it.
  *
  * @author ajs6f
@@ -35,7 +33,7 @@ public class ModelTripleHandler implements TripleHandler, AutoCloseable {
      */
     protected Model model = createDefaultModel();
 
-    private static final Logger logger = getLogger(ModelTripleHandler.class);
+    private static final Logger LOGGER = getLogger(ModelTripleHandler.class);
 
     /*
      * (non-Javadoc)
@@ -53,7 +51,7 @@ public class ModelTripleHandler implements TripleHandler, AutoCloseable {
                 model.createProperty(p.getNamespace(), p.getLocalName()),
                     objectNode(o));
         model.add(triple);
-        logger.debug("Added triple: {}", triple.asTriple().toString());
+        LOGGER.debug("Added triple: {}", triple.asTriple().toString());
     }
 
     /**
