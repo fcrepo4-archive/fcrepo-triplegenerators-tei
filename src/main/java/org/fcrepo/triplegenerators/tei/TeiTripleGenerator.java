@@ -16,6 +16,10 @@
 
 package org.fcrepo.triplegenerators.tei;
 
+import static com.hp.hpl.jena.graph.NodeFactory.createLiteral;
+import static com.hp.hpl.jena.graph.NodeFactory.createURI;
+import static com.hp.hpl.jena.rdf.model.ModelFactory.createModelForGraph;
+import static java.lang.String.format;
 import static javax.xml.transform.TransformerFactory.newInstance;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -47,8 +51,11 @@ import org.apache.any23.ExtractionReport;
 import org.fcrepo.triplegenerators.tei.xslt.LoggingErrorListener;
 import org.slf4j.Logger;
 
+import com.hp.hpl.jena.graph.Graph;
+import com.hp.hpl.jena.graph.Node;
+import com.hp.hpl.jena.graph.Triple;
+import com.hp.hpl.jena.mem.GraphMem;
 import com.hp.hpl.jena.query.Dataset;
-import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.sparql.core.DatasetImpl;
 
 
@@ -66,6 +73,11 @@ public class TeiTripleGenerator {
 
     private static final Logger LOGGER = getLogger(TeiTripleGenerator.class);
 
+    private static final Node PROBLEM_PREDICATE = createURI("info:fedora/hasProblem");
+
+    //TODO replace this with a constructed URI derived from barmintor's contract
+    private Node uri;
+
     /**
      * @throws TransformerConfigurationException
      * @throws TransformerFactoryConfigurationError
@@ -81,14 +93,12 @@ public class TeiTripleGenerator {
         try (
             final InputStream sourceStream =
                 this.getClass().getResourceAsStream("/xslt/add-ids.xslt")) {
-            assert sourceStream != null : "Couldn't find ID-generating XSLT!";
             addIdsXform = tf.newTransformer(new StreamSource(sourceStream));
         }
 
         try (
             final InputStream sourceStream =
                 this.getClass().getResourceAsStream("/xslt/tei2rdf.xslt")) {
-            assert sourceStream != null : "Couldn't find RDF-generating XSLT!";
             tei2RdfXform = tf.newTransformer(new StreamSource(sourceStream));
         }
     }
@@ -133,15 +143,21 @@ public class TeiTripleGenerator {
                     "http://dummy.absolute.url", "application/rdf+xml");
         try (final ModelTripleHandler handler = new ModelTripleHandler()) {
             final ExtractionReport report = any23.extract(source, handler);
+            final Dataset results = new DatasetImpl(handler.getModel());
+            final Graph problems = new GraphMem();
             for (final Extractor<?> extractor : report.getMatchingExtractors()) {
                 for (final Issue issue : report.getExtractorIssues(extractor
                         .getDescription().getExtractorName())) {
-                    LOGGER.error("Extraction issue: ({},{}): {}\n", issue
+                    final String mesg = format("Extraction issue: ({},{}): {}\n", issue
                             .getCol(), issue.getRow(), issue.getMessage());
+                    problems.add(new Triple(uri, PROBLEM_PREDICATE, createLiteral(mesg)));
                 }
             }
-            final Model results = handler.getModel();
-            return new DatasetImpl(results);
+            if (problems.size() > 0) {
+                results.addNamedModel("problems", createModelForGraph(problems));
+            }
+
+            return results;
         }
     }
 
@@ -152,7 +168,7 @@ public class TeiTripleGenerator {
      * @throws TransformerConfigurationException
      * @throws TransformerException
      */
-    protected StreamResult createRDFXML(final InputStream resource)
+    private StreamResult createRDFXML(final InputStream resource)
         throws IOException, TransformerConfigurationException,
         TransformerException {
         final Source resourceSource = new StreamSource(resource);
