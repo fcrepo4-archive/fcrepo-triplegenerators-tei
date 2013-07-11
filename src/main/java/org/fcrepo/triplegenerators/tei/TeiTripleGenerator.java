@@ -29,7 +29,8 @@ import java.io.InputStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.net.URL;
-import javax.ws.rs.HeaderParam;
+
+import javax.jcr.RepositoryException;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -48,6 +49,7 @@ import org.apache.any23.source.DocumentSource;
 import org.apache.any23.writer.TripleHandlerException;
 import org.apache.any23.Any23;
 import org.apache.any23.ExtractionReport;
+import org.fcrepo.rdf.GraphSubjects;
 import org.fcrepo.triplegenerators.tei.xslt.LoggingErrorListener;
 import org.slf4j.Logger;
 
@@ -73,10 +75,8 @@ public class TeiTripleGenerator {
 
     private static final Logger LOGGER = getLogger(TeiTripleGenerator.class);
 
-    private static final Node PROBLEM_PREDICATE = createURI("info:fedora/hasProblem");
-
-    //TODO replace this with a constructed URI derived from barmintor's contract
-    private Node uri;
+    private static final Node PROBLEM_PREDICATE =
+        createURI("info:fedora/hasProblemWithTeiRdfExtraction");
 
     /**
      * @throws TransformerConfigurationException
@@ -111,14 +111,15 @@ public class TeiTripleGenerator {
      * @throws TransformerException
      * @throws ExtractionException
      * @throws TripleHandlerException
+     * @throws RepositoryException
      */
-    public Dataset getTriples(@HeaderParam("Content-Location")
+    public Dataset getTriples(final javax.jcr.Node uri, final GraphSubjects gs,
     final URL teiLocation) throws IOException,
     TransformerConfigurationException, TransformerException,
-    ExtractionException, TripleHandlerException {
+    ExtractionException, TripleHandlerException, RepositoryException {
         // TODO redo this brainless way of retrieving the resource
         try (final InputStream teiStream = teiLocation.openStream()) {
-            return getTriples(teiStream);
+            return getTriples(uri, gs, teiStream);
         }
     }
 
@@ -130,17 +131,19 @@ public class TeiTripleGenerator {
      * @throws TransformerException
      * @throws ExtractionException
      * @throws TripleHandlerException
+     * @throws RepositoryException
      */
-    public Dataset getTriples(final InputStream resource)
+    public Dataset getTriples(final javax.jcr.Node uri, final GraphSubjects gs,
+        final InputStream resource)
         throws TransformerConfigurationException, IOException,
-        TransformerException, ExtractionException, TripleHandlerException {
-
+        TransformerException, ExtractionException, TripleHandlerException, RepositoryException {
+        final String baseUri = gs.getGraphSubject(uri).asNode().getURI();
         final StreamResult rdfXml = createRDFXML(resource);
         // TODO when Any23 supports it, use a streaming transfer here
         final byte[] rdfXmlBytes = rdfXml.getWriter().toString().getBytes();
         final DocumentSource source =
-            new ByteArrayDocumentSource(rdfXmlBytes,
-                    "http://dummy.absolute.url", "application/rdf+xml");
+            new ByteArrayDocumentSource(rdfXmlBytes, baseUri,
+                    "application/rdf+xml");
         try (final ModelTripleHandler handler = new ModelTripleHandler()) {
             final ExtractionReport report = any23.extract(source, handler);
             final Dataset results = new DatasetImpl(handler.getModel());
@@ -149,14 +152,14 @@ public class TeiTripleGenerator {
                 for (final Issue issue : report.getExtractorIssues(extractor
                         .getDescription().getExtractorName())) {
                     final String mesg = format("Extraction issue: ({},{}): {}\n", issue
-                            .getCol(), issue.getRow(), issue.getMessage());
-                    problems.add(new Triple(uri, PROBLEM_PREDICATE, createLiteral(mesg)));
+                                .getCol(), issue.getRow(), issue.getMessage());
+                    problems.add(new Triple(createURI(baseUri),
+                            PROBLEM_PREDICATE, createLiteral(mesg)));
                 }
             }
             if (problems.size() > 0) {
                 results.addNamedModel("problems", createModelForGraph(problems));
             }
-
             return results;
         }
     }

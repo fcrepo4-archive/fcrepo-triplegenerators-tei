@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- copied from https://raw.github.com/ajstanley/TEI_to_RDF/master/xslt/tei_with_relations_to_rdf.xsl -->
+<!-- copied and mutated from https://raw.github.com/ajstanley/TEI_to_RDF/master/xslt/tei_with_relations_to_rdf.xsl -->
 
 <!--  xslt to extract rdf data from TEI-Bare encoded text 
       TEI-Bare is a minimal TEI tagset, i.e. the very basic tags necessary
@@ -23,12 +23,6 @@
 
     <xsl:output method="xml" indent="yes" encoding="UTF-8"/>
 
-    <!-- Create variables to store the manuscript ID -->
-    <xsl:variable name="TEI_ID" select="/tei:TEI/@xml:id"/>
-    <xsl:variable name="MAN_ID" select="concat('http://fcrepo.org/',$TEI_ID)"/>
-    <!-- **** Insert your own project-specific ID formats here for MAN_ID, 
-        as we have done with the fcrepo.org example-->
-
     <!-- Create a variable to store the namespace of the TEI node -->
     <!-- Thanks to Alohci at http://stackoverflow.com/questions/1319138/finding-xmlns-with-xsl-xpath -->
     <xsl:variable name="CONFORMATION" select="/tei:TEI/namespace::node()"/>
@@ -44,9 +38,8 @@
             <!-- Creation of RDF statements describing the document as a whole  -->
 
             <rdf:Description>
-                <xsl:attribute name="rdf:about">
-                    <xsl:value-of select="$MAN_ID"/>
-                </xsl:attribute>
+                <xsl:attribute name="rdf:about"/>
+
                 <!-- <rdfs:label>
                     <xsl:value-of select="$TEI_ID"/>
                 </rdfs:label> -->
@@ -111,9 +104,7 @@
                 <!-- Structural links to parts of document: type = Reference -->
                 <xsl:for-each select="/tei:TEI/tei:text/@xml:id">
                     <dct:hasPart>
-                        <xsl:attribute name="rdf:resource">
-                            <xsl:value-of select="$MAN_ID"/>
-                        </xsl:attribute>
+                        <xsl:attribute name="rdf:resource"/>
                     </dct:hasPart>
                 </xsl:for-each>
             </rdf:Description>
@@ -127,7 +118,7 @@
             <xsl:for-each select="/tei:TEI/tei:text">
                 <rdf:Description>
                     <xsl:attribute name="rdf:about">
-                        <xsl:value-of select="concat($MAN_ID,'#',./@xml:id)"/>
+                        <xsl:value-of select="concat('#',./@xml:id)"/>
                     </xsl:attribute>
                    <!-- <rdfs:label>
                         <xsl:value-of select="./@xml:id"/>
@@ -136,9 +127,7 @@
                     <rdf:type
                         rdf:resource="http://purl.org/saws/ontology#LinguisticObject"/>
                     <dct:isPartOf>
-                        <xsl:attribute name="rdf:resource">
-                            <xsl:value-of select="$MAN_ID"/>
-                        </xsl:attribute>
+                        <xsl:attribute name="rdf:resource"/>
                     </dct:isPartOf>
                 </rdf:Description>
             </xsl:for-each>
@@ -168,7 +157,7 @@
                     <!-- For now, assume the URI for the triple is an xml:id within the document
                         but this could also be an external URI -->
                     <xsl:attribute name="rdf:about">
-                        <xsl:value-of select="concat($MAN_ID,'#',@active)"/>
+                        <xsl:value-of select="concat('#',@active)"/>
                     </xsl:attribute>
 
                     <!-- Predicate of RDF triple is the URI given in @rel -->
@@ -179,7 +168,7 @@
                                 <!-- For now, assume the URI for the triple is an xml:id within the document
                                     but this could also be an external URI -->
                                 <xsl:value-of
-                                    select="concat($MAN_ID,'#',@passive)"/>
+                                    select="concat('#',@passive)"/>
                             </xsl:element>
                         </xsl:when>
                         <xsl:when test="@name">
@@ -188,7 +177,7 @@
                                 <!-- For now, assume the URI for the triple is an xml:id within the document
                                     but this could also be an external URI -->
                                 <xsl:value-of
-                                    select="concat($MAN_ID,'#',@passive)"/>
+                                    select="concat('#',@passive)"/>
                             </xsl:element>
                         </xsl:when>
                     </xsl:choose>
@@ -212,7 +201,7 @@
             /></xsl:message>-->
         <rdf:Description>
             <xsl:attribute name="rdf:about">
-                <xsl:value-of select="concat($MAN_ID,'#',$ABOUT)"/>
+                <xsl:value-of select="concat('#',$ABOUT)"/>
             </xsl:attribute>
             <rdfs:label>
                 <xsl:value-of select="$ABOUT"/>
@@ -222,7 +211,7 @@
                 rdf:resource="http://purl.org/saws/ontology#LinguisticObject"/>
             <dct:isPartOf>
                 <xsl:attribute name="rdf:resource">
-                    <xsl:value-of select="concat($MAN_ID,'#',$PARENT)"/>
+                    <xsl:value-of select="concat('#',$PARENT)"/>
                 </xsl:attribute>
             </dct:isPartOf>
         </rdf:Description>
