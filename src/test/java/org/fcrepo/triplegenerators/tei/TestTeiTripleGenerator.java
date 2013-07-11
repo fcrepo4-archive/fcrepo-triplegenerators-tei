@@ -16,7 +16,7 @@
 
 package org.fcrepo.triplegenerators.tei;
 
-import static com.google.common.base.Charsets.UTF_8;
+import static com.google.common.io.Files.toByteArray;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -38,7 +38,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.slf4j.Logger;
 
-import com.google.common.io.Files;
 import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Property;
@@ -103,8 +102,8 @@ public class TestTeiTripleGenerator extends TeiTripleGenerator {
     @Test
     public void testExtractionWithBadRdfXml() throws Exception {
 
-        final String rdfXml =
-            Files.toString(new File("target/test-classes/bad-rdf.xml"), UTF_8);
+        final byte[] rdfXml =
+            toByteArray(new File("target/test-classes/bad-rdf.xml"));
         final Dataset results = extractTriples(rdfXml, "http://fedora");
         for (final StmtIterator i = results.getDefaultModel().listStatements(); i
                 .hasNext();) {

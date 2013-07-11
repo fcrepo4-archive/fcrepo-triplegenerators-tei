@@ -24,11 +24,9 @@ import static java.lang.String.format;
 import static javax.xml.transform.TransformerFactory.newInstance;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.io.Writer;
 import java.net.URL;
 
 import javax.jcr.RepositoryException;
@@ -54,6 +52,7 @@ import org.fcrepo.rdf.GraphSubjects;
 import org.fcrepo.triplegenerators.tei.xslt.LoggingErrorListener;
 import org.slf4j.Logger;
 
+import com.google.common.io.FileBackedOutputStream;
 import com.hp.hpl.jena.graph.Graph;
 import com.hp.hpl.jena.graph.Node;
 import com.hp.hpl.jena.graph.Triple;
@@ -140,22 +139,23 @@ public class TeiTripleGenerator {
         TransformerException, TripleHandlerException,
         RepositoryException {
         final String baseUri = gs.getGraphSubject(uri).asNode().getURI();
-        final String rdfXml = createRDFXML(resource);
-        // TODO when Any23 supports it, use a streaming transfer here
+        final byte[] rdfXml = createRDFXML(resource);
+        // TODO when Any23 supports it, use a streaming transfer between
+        // these two steps
         return extractTriples(rdfXml, baseUri);
     }
 
-    protected Dataset extractTriples(final String rdfXml, final String baseUri)
+    protected Dataset extractTriples(final byte[] rdfXml, final String baseUri)
         throws TripleHandlerException, IOException {
 
         final DocumentSource source =
-            new ByteArrayDocumentSource(rdfXml.getBytes(), baseUri,
+            new ByteArrayDocumentSource(rdfXml, baseUri,
                     "application/rdf+xml");
+        final Graph problems = new GraphMem();
         try (final ModelTripleHandler handler = new ModelTripleHandler()) {
             try {
                 final ExtractionReport report = any23.extract(source, handler);
                 final Dataset results = new DatasetImpl(handler.getModel());
-                final Graph problems = new GraphMem();
                 for (final Extractor<?> extractor : report.getMatchingExtractors()) {
                     for (final Issue issue : report.getExtractorIssues(extractor
                             .getDescription().getExtractorName())) {
@@ -170,12 +170,11 @@ public class TeiTripleGenerator {
                 }
                 return results;
             } catch (final ExtractionException e) {
-                final Dataset results = new DatasetImpl(createDefaultModel());
-                final Graph problems = new GraphMem();
+                final Dataset sadResults = new DatasetImpl(createDefaultModel());
                 problems.add(new Triple(createURI(baseUri), PROBLEM_PREDICATE,
                         createLiteral(e.getMessage())));
-                results.addNamedModel("problems", createModelForGraph(problems));
-                return results;
+                sadResults.addNamedModel("problems", createModelForGraph(problems));
+                return sadResults;
             }
         }
     }
@@ -187,19 +186,19 @@ public class TeiTripleGenerator {
      * @throws TransformerConfigurationException
      * @throws TransformerException
      */
-    private String createRDFXML(final InputStream resource)
+    private byte[] createRDFXML(final InputStream resource)
         throws IOException, TransformerConfigurationException,
         TransformerException {
         final Source resourceSource = new StreamSource(resource);
-        try (final Writer addIdsResultWriter = new StringWriter()) {
-            final Result addIdsResult = new StreamResult(addIdsResultWriter);
+        try (
+            final FileBackedOutputStream addIdsResultStream =
+                new FileBackedOutputStream(1024 * 1024)) {
+            final Result addIdsResult = new StreamResult(addIdsResultStream);
             addIdsXform.transform(resourceSource, addIdsResult);
-            final String teiWithIds = addIdsResultWriter.toString();
-            LOGGER.debug("Added XML IDs to TEI: \n{}", teiWithIds);
-            // TODO stream the results into the new source
+            LOGGER.debug("Added XML IDs to TEI.");
             try (
                 final InputStream tei2RdfSourceStream =
-                    new ByteArrayInputStream(teiWithIds.getBytes())) {
+                    addIdsResultStream.getSupplier().getInput()) {
                 final Source tei2RdfSource =
                     new StreamSource(tei2RdfSourceStream);
                 final StreamResult tei2RdfResult =
@@ -207,7 +206,7 @@ public class TeiTripleGenerator {
                 tei2RdfXform.transform(tei2RdfSource, tei2RdfResult);
                 LOGGER.debug("Created RDF/XML from TEI: \n{}", tei2RdfResult
                         .getWriter().toString());
-                return tei2RdfResult.getWriter().toString();
+                return tei2RdfResult.getWriter().toString().getBytes();
             }
         }
     }
