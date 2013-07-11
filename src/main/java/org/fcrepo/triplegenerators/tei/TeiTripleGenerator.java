@@ -16,6 +16,7 @@
 
 package org.fcrepo.triplegenerators.tei;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static com.hp.hpl.jena.graph.NodeFactory.createLiteral;
 import static com.hp.hpl.jena.graph.NodeFactory.createURI;
 import static com.hp.hpl.jena.rdf.model.ModelFactory.createDefaultModel;
@@ -28,7 +29,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
 import java.net.URL;
-
 import javax.jcr.RepositoryException;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -103,92 +103,91 @@ public class TeiTripleGenerator {
         }
     }
 
+
     /**
+     * @param uri
+     * @param gs
      * @param teiLocation
      * @return A {@link Dataset} with extracted triples.
-     * @throws IOException
-     * @throws TransformerConfigurationException
-     * @throws TransformerException
-     * @throws ExtractionException
-     * @throws TripleHandlerException
-     * @throws RepositoryException
      */
     public Dataset getTriples(final javax.jcr.Node uri, final GraphSubjects gs,
-    final URL teiLocation) throws IOException,
-    TransformerConfigurationException, TransformerException,
-    ExtractionException, TripleHandlerException, RepositoryException {
+    final URL teiLocation) {
         // TODO redo this brainless way of retrieving the resource
         try (final InputStream teiStream = teiLocation.openStream()) {
             return getTriples(uri, gs, teiStream);
-        }
-    }
-
-    /**
-     * @param resource
-     * @return A {@link Dataset} with extracted triples.
-     * @throws TransformerConfigurationException
-     * @throws IOException
-     * @throws TransformerException
-     * @throws ExtractionException
-     * @throws TripleHandlerException
-     * @throws RepositoryException
-     */
-    public Dataset getTriples(final javax.jcr.Node uri, final GraphSubjects gs,
-        final InputStream resource)
-        throws TransformerConfigurationException, IOException,
-        TransformerException, TripleHandlerException,
-        RepositoryException {
-        final String baseUri = gs.getGraphSubject(uri).asNode().getURI();
-        final byte[] rdfXml = createRDFXML(resource);
-        // TODO when Any23 supports it, use a streaming transfer between
-        // these two steps
-        return extractTriples(rdfXml, baseUri);
-    }
-
-    protected Dataset extractTriples(final byte[] rdfXml, final String baseUri)
-        throws TripleHandlerException, IOException {
-
-        final DocumentSource source =
-            new ByteArrayDocumentSource(rdfXml, baseUri,
-                    "application/rdf+xml");
-        final Graph problems = new GraphMem();
-        try (final ModelTripleHandler handler = new ModelTripleHandler()) {
+        } catch (final IOException e) {
             try {
-                final ExtractionReport report = any23.extract(source, handler);
-                final Dataset results = new DatasetImpl(handler.getModel());
-                for (final Extractor<?> extractor : report.getMatchingExtractors()) {
-                    for (final Issue issue : report.getExtractorIssues(extractor
-                            .getDescription().getExtractorName())) {
-                        final String mesg = format("Extraction issue: ({},{}): {}\n", issue
-                                    .getCol(), issue.getRow(), issue.getMessage());
-                        problems.add(new Triple(createURI(baseUri),
-                                PROBLEM_PREDICATE, createLiteral(mesg)));
-                    }
-                }
-                if (problems.size() > 0) {
-                    results.addNamedModel("problems", createModelForGraph(problems));
-                }
-                return results;
-            } catch (final ExtractionException e) {
-                final Dataset sadResults = new DatasetImpl(createDefaultModel());
-                problems.add(new Triple(createURI(baseUri), PROBLEM_PREDICATE,
-                        createLiteral(e.getMessage())));
-                sadResults.addNamedModel("problems", createModelForGraph(problems));
-                return sadResults;
+                return exceptionRdf(gs.getGraphSubject(uri).getURI(), e);
+            } catch (final RepositoryException ee) {
+                return exceptionRdf("unknown", e);
             }
         }
     }
 
     /**
+     * @param uri
+     * @param gs
      * @param resource
-     * @return A {@link Result} of RDF/XML
+     * @return A {@link Dataset} with extracted triples.
+     */
+    public Dataset getTriples(final javax.jcr.Node uri, final GraphSubjects gs,
+        final InputStream resource) {
+        String baseUri = "unknown";
+        try {
+            baseUri = gs.getGraphSubject(uri).getURI();
+            final byte[] rdfXml = createRDFXML(resource);
+            // TODO when Any23 supports it, use a streaming transfer between
+            // these two steps
+            return extractTriples(rdfXml, baseUri);
+        } catch (
+            TripleHandlerException | IOException | TransformerException |
+            ExtractionException | RepositoryException e) {
+            return exceptionRdf(baseUri, e);
+        }
+    }
+
+    /**
+     * @param rdfXml
+     * @param baseUri
+     * @return A {@link Dataset} with extracted triples.
+     * @throws TripleHandlerException
      * @throws IOException
-     * @throws TransformerConfigurationException
+     * @throws ExtractionException
+     */
+    protected Dataset extractTriples(final byte[] rdfXml, final String baseUri)
+        throws TripleHandlerException, IOException, ExtractionException {
+
+        final DocumentSource source =
+            new ByteArrayDocumentSource(rdfXml, baseUri, "application/rdf+xml");
+        final Graph problems = new GraphMem();
+        try (final ModelTripleHandler handler = new ModelTripleHandler()) {
+            final ExtractionReport report = any23.extract(source, handler);
+            final Dataset results = new DatasetImpl(handler.getModel());
+            for (final Extractor<?> extractor : report.getMatchingExtractors()) {
+                for (final Issue issue : report.getExtractorIssues(extractor
+                        .getDescription().getExtractorName())) {
+                    final String mesg =
+                        format("Extraction issue: ({},{}): {}\n", issue
+                                .getCol(), issue.getRow(), issue.getMessage());
+                    problems.add(new Triple(createURI(baseUri),
+                            PROBLEM_PREDICATE, createLiteral(mesg)));
+                }
+            }
+            if (problems.size() > 0) {
+                results.addNamedModel("problems", createModelForGraph(problems));
+            }
+            return results;
+        }
+    }
+
+    /**
+     * @param resource An {@link InputStream} with TEI XML.
+     * @return A {@code byte[]} of RDF/XML.
+     * @throws IOException
      * @throws TransformerException
      */
     private byte[] createRDFXML(final InputStream resource)
-        throws IOException, TransformerConfigurationException,
-        TransformerException {
+        throws IOException, TransformerException {
         final Source resourceSource = new StreamSource(resource);
         try (
             final FileBackedOutputStream addIdsResultStream =
@@ -209,5 +208,21 @@ public class TeiTripleGenerator {
                 return tei2RdfResult.getWriter().toString().getBytes();
             }
         }
+    }
+
+    /**
+     * @param baseUri
+     * @param e
+     * @return A {@link Dataset} of RDF containing the exception
+     */
+    protected Dataset exceptionRdf(final String baseUri, final Exception... es) {
+        final Graph problems = new GraphMem();
+        final Dataset sadResults = new DatasetImpl(createDefaultModel());
+        for (final Exception e : newArrayList(es)) {
+            problems.add(new Triple(createURI(baseUri), PROBLEM_PREDICATE,
+                    createLiteral(e.getMessage())));
+        }
+        sadResults.addNamedModel("problems", createModelForGraph(problems));
+        return sadResults;
     }
 }

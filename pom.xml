@@ -10,7 +10,7 @@
 
   <name>Fedora TEI triple generator.</name>
   <description>Generates RDF triples from TEI documents.</description>
-  
+
   <properties>
     <any23.version>0.9.0-SNAPSHOT</any23.version>
   </properties>
@@ -48,6 +48,8 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- we exclude Tika Core above and reimport it here to avoid a version 
+      convergence problem against Maven Enforcer -->
     <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-core</artifactId>
@@ -75,23 +77,9 @@
     </repository>
   </repositories>
 
- <!--   <build>
-    <plugins>
-      <plugin>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>1.2</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <skip>true</skip>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build> -->
+  <!-- <build> <plugins> <plugin> <artifactId>maven-enforcer-plugin</artifactId> 
+    <version>1.2</version> <executions> <execution> <goals> <goal>enforce</goal> 
+    </goals> </execution> </executions> <configuration> <skip>true</skip> </configuration> 
+    </plugin> </plugins> </build> -->
 
 </project>

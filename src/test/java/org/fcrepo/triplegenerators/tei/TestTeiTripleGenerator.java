@@ -32,6 +32,7 @@ import javax.jcr.Node;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactoryConfigurationError;
 
+import org.apache.any23.extractor.ExtractionException;
 import org.fcrepo.rdf.GraphSubjects;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,7 +41,6 @@ import org.slf4j.Logger;
 
 import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.rdf.model.Model;
-import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
@@ -74,8 +74,7 @@ public class TestTeiTripleGenerator extends TeiTripleGenerator {
         when(mockUriNode.getPath()).thenReturn("/test");
         when(mockGraphSubjects.getGraphSubject(mockUriNode)).thenReturn(
                 mockResource);
-        when(mockResource.asNode()).thenReturn(mockNode);
-        when(mockNode.getURI()).thenReturn("http://fedora");
+        when(mockResource.getURI()).thenReturn("http://fedora");
     }
 
     @Test
@@ -99,23 +98,17 @@ public class TestTeiTripleGenerator extends TeiTripleGenerator {
         LOGGER.info("Found appropriate triple: {}", testTriple.asTriple());
     }
 
-    @Test
-    public void testExtractionWithBadRdfXml() throws Exception {
-
+    @Test(expected = ExtractionException.class)
+    public void testextractTriplesWithBadRdfXml() throws Exception {
         final byte[] rdfXml =
             toByteArray(new File("target/test-classes/bad-rdf.xml"));
-        final Dataset results = extractTriples(rdfXml, "http://fedora");
-        for (final StmtIterator i = results.getDefaultModel().listStatements(); i
-                .hasNext();) {
-            LOGGER.debug("Retrieved triple: \n{}", i.next().asTriple());
-        }
-        assertTrue("Found no problems when I should have!", results
-                .containsNamedModel("problems"));
-        for (final StmtIterator i =
-            results.getNamedModel("problems").listStatements((Resource) null,
-                    (Property) null, (String) null); i.hasNext();) {
-            LOGGER.info("Found expected problem: {}.", i.next().asTriple());
-        }
+        extractTriples(rdfXml, "http://fedora");
     }
 
+    @Test
+    public void testExceptionRdf() {
+        final Dataset ds = exceptionRdf("uri", new Exception("Bad news!"));
+        assertTrue(ds.getNamedModel("problems").contains(null, null,
+                "Bad news!"));
+    }
 }
