@@ -18,6 +18,7 @@ package org.fcrepo.triplegenerators.tei;
 
 import static com.hp.hpl.jena.graph.NodeFactory.createLiteral;
 import static com.hp.hpl.jena.graph.NodeFactory.createURI;
+import static com.hp.hpl.jena.rdf.model.ModelFactory.createDefaultModel;
 import static com.hp.hpl.jena.rdf.model.ModelFactory.createModelForGraph;
 import static java.lang.String.format;
 import static javax.xml.transform.TransformerFactory.newInstance;
@@ -136,31 +137,46 @@ public class TeiTripleGenerator {
     public Dataset getTriples(final javax.jcr.Node uri, final GraphSubjects gs,
         final InputStream resource)
         throws TransformerConfigurationException, IOException,
-        TransformerException, ExtractionException, TripleHandlerException, RepositoryException {
+        TransformerException, TripleHandlerException,
+        RepositoryException {
         final String baseUri = gs.getGraphSubject(uri).asNode().getURI();
-        final StreamResult rdfXml = createRDFXML(resource);
+        final String rdfXml = createRDFXML(resource);
         // TODO when Any23 supports it, use a streaming transfer here
-        final byte[] rdfXmlBytes = rdfXml.getWriter().toString().getBytes();
+        return extractTriples(rdfXml, baseUri);
+    }
+
+    protected Dataset extractTriples(final String rdfXml, final String baseUri)
+        throws TripleHandlerException, IOException {
+
         final DocumentSource source =
-            new ByteArrayDocumentSource(rdfXmlBytes, baseUri,
+            new ByteArrayDocumentSource(rdfXml.getBytes(), baseUri,
                     "application/rdf+xml");
         try (final ModelTripleHandler handler = new ModelTripleHandler()) {
-            final ExtractionReport report = any23.extract(source, handler);
-            final Dataset results = new DatasetImpl(handler.getModel());
-            final Graph problems = new GraphMem();
-            for (final Extractor<?> extractor : report.getMatchingExtractors()) {
-                for (final Issue issue : report.getExtractorIssues(extractor
-                        .getDescription().getExtractorName())) {
-                    final String mesg = format("Extraction issue: ({},{}): {}\n", issue
-                                .getCol(), issue.getRow(), issue.getMessage());
-                    problems.add(new Triple(createURI(baseUri),
-                            PROBLEM_PREDICATE, createLiteral(mesg)));
+            try {
+                final ExtractionReport report = any23.extract(source, handler);
+                final Dataset results = new DatasetImpl(handler.getModel());
+                final Graph problems = new GraphMem();
+                for (final Extractor<?> extractor : report.getMatchingExtractors()) {
+                    for (final Issue issue : report.getExtractorIssues(extractor
+                            .getDescription().getExtractorName())) {
+                        final String mesg = format("Extraction issue: ({},{}): {}\n", issue
+                                    .getCol(), issue.getRow(), issue.getMessage());
+                        problems.add(new Triple(createURI(baseUri),
+                                PROBLEM_PREDICATE, createLiteral(mesg)));
+                    }
                 }
-            }
-            if (problems.size() > 0) {
+                if (problems.size() > 0) {
+                    results.addNamedModel("problems", createModelForGraph(problems));
+                }
+                return results;
+            } catch (final ExtractionException e) {
+                final Dataset results = new DatasetImpl(createDefaultModel());
+                final Graph problems = new GraphMem();
+                problems.add(new Triple(createURI(baseUri), PROBLEM_PREDICATE,
+                        createLiteral(e.getMessage())));
                 results.addNamedModel("problems", createModelForGraph(problems));
+                return results;
             }
-            return results;
         }
     }
 
@@ -171,7 +187,7 @@ public class TeiTripleGenerator {
      * @throws TransformerConfigurationException
      * @throws TransformerException
      */
-    private StreamResult createRDFXML(final InputStream resource)
+    private String createRDFXML(final InputStream resource)
         throws IOException, TransformerConfigurationException,
         TransformerException {
         final Source resourceSource = new StreamSource(resource);
@@ -180,6 +196,7 @@ public class TeiTripleGenerator {
             addIdsXform.transform(resourceSource, addIdsResult);
             final String teiWithIds = addIdsResultWriter.toString();
             LOGGER.debug("Added XML IDs to TEI: \n{}", teiWithIds);
+            // TODO stream the results into the new source
             try (
                 final InputStream tei2RdfSourceStream =
                     new ByteArrayInputStream(teiWithIds.getBytes())) {
@@ -190,7 +207,7 @@ public class TeiTripleGenerator {
                 tei2RdfXform.transform(tei2RdfSource, tei2RdfResult);
                 LOGGER.debug("Created RDF/XML from TEI: \n{}", tei2RdfResult
                         .getWriter().toString());
-                return tei2RdfResult;
+                return tei2RdfResult.getWriter().toString();
             }
         }
     }

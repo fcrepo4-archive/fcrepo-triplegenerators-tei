@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF xmlns:fedora-model="info:fedora/fedora-system:def/model#"
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:uva="http://fedora.lib.virginia.edu/relationships#">
+    <!-- intentionally illegal RDF -->
+    <rdf:Description rdf:about="http://9999.9999.9999.9999">
+        <uva:testPredicate rdf:resource="info:test/resource">
+            <rdf:blather>Bad RDF!</rdf:blather>
+        </uva:testPredicate>
+        <uva:testPredicateWithLiteral>literal value</uva:testPredicateWithLiteral>
+        <uva:testPredicateWithLiteral>/relative/uri/</uva:testPredicateWithLiteral>
+    </rdf:Description>
+</rdf:RDF>

@@ -13,8 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.fcrepo.triplegenerators.tei;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -36,14 +38,14 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.slf4j.Logger;
 
+import com.google.common.io.Files;
+import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
 
-
-public class TestTeiTripleGenerator {
-
-    private TeiTripleGenerator testTeiTripleGenerator;
+public class TestTeiTripleGenerator extends TeiTripleGenerator {
 
     @Mock
     private Node mockUriNode;
@@ -57,7 +59,8 @@ public class TestTeiTripleGenerator {
     @Mock
     private com.hp.hpl.jena.graph.Node mockNode;
 
-    private static final Logger LOGGER = getLogger(TestTeiTripleGenerator.class);
+    private static final Logger LOGGER =
+        getLogger(TestTeiTripleGenerator.class);
 
     public TestTeiTripleGenerator() throws TransformerConfigurationException,
             TransformerFactoryConfigurationError, IOException {
@@ -66,10 +69,10 @@ public class TestTeiTripleGenerator {
 
     @Before
     public void setUp() throws Exception {
-        testTeiTripleGenerator = new TeiTripleGenerator();
         initMocks(this);
         when(mockUriNode.getPath()).thenReturn("/test");
-        when(mockGraphSubjects.getGraphSubject(mockUriNode)).thenReturn(mockResource);
+        when(mockGraphSubjects.getGraphSubject(mockUriNode)).thenReturn(
+                mockResource);
         when(mockResource.asNode()).thenReturn(mockNode);
         when(mockNode.getURI()).thenReturn("http://fedora");
     }
@@ -80,8 +83,7 @@ public class TestTeiTripleGenerator {
         try (
             final InputStream teiStream =
                 new FileInputStream(new File("target/test-classes/tei.xml"))) {
-            results =
-                testTeiTripleGenerator.getTriples(mockUriNode,
+            results = getTriples(mockUriNode,
                         mockGraphSubjects, teiStream).getDefaultModel();
         }
         assertFalse("Got no triples!", results.isEmpty());
@@ -97,18 +99,21 @@ public class TestTeiTripleGenerator {
 
     @Test
     public void testExtractionWithProblems() throws Exception {
-        Model results;
-        try (
-            final InputStream teiStream =
-                new FileInputStream(new File("target/test-classes/bad-tei.xml"))) {
-            results =
-                testTeiTripleGenerator.getTriples(mockUriNode,
-                        mockGraphSubjects, teiStream).getDefaultModel();
-        }
-        for (final StmtIterator i = results.listStatements(); i.hasNext();) {
+
+        final String rdfXml =
+            Files.toString(new File("target/test-classes/bad-rdf.xml"), UTF_8);
+        final Dataset results = extractTriples(rdfXml, "http://fedora");
+        for (final StmtIterator i = results.getDefaultModel().listStatements(); i
+                .hasNext();) {
             LOGGER.debug("Retrieved triple: \n{}", i.next().asTriple());
         }
-        LOGGER.info("Found appropriate triple.");
+        assertTrue("Found no problems when I should have!", results
+                .containsNamedModel("problems"));
+        for (final StmtIterator i =
+            results.getNamedModel("problems").listStatements((Resource) null,
+                    (Property) null, (String) null); i.hasNext();) {
+            LOGGER.info("Found expected problem: {}.", i.next().asTriple());
+        }
     }
 
 }
