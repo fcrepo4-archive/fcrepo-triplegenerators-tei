@@ -17,6 +17,8 @@
 package org.fcrepo.triplegenerators.tei;
 
 import static com.google.common.io.Files.toByteArray;
+import static com.hp.hpl.jena.rdf.model.ResourceFactory.createProperty;
+import static com.hp.hpl.jena.rdf.model.ResourceFactory.createResource;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
@@ -60,6 +62,11 @@ public class TestTeiTripleGenerator extends TeiTripleGenerator {
     @Mock
     private com.hp.hpl.jena.graph.Node mockNode;
 
+    private static final Statement testTriple = new StatementImpl(
+            createResource("http://fedora"),
+            createProperty("http://purl.org/dc/terms/publisher"),
+            createResource("http://www.ancientwisdoms.ac.uk"));
+
     private static final Logger LOGGER =
         getLogger(TestTeiTripleGenerator.class);
 
@@ -83,19 +90,16 @@ public class TestTeiTripleGenerator extends TeiTripleGenerator {
         try (
             final InputStream teiStream =
                 new FileInputStream(new File("target/test-classes/tei.xml"))) {
-            results = getTriples(mockUriNode,
-                        mockGraphSubjects, teiStream).getDefaultModel();
+            results =
+                getTriples(mockUriNode, mockGraphSubjects, teiStream)
+                        .getDefaultModel();
         }
         assertFalse("Got no triples!", results.isEmpty());
         for (final StmtIterator i = results.listStatements(); i.hasNext();) {
             LOGGER.debug("Retrieved triple: \n{}", i.next().asTriple());
         }
-        final Statement testTriple =
-            new StatementImpl(results.createResource("http://fedora"), results
-                    .createProperty("http://purl.org/dc/terms/publisher"),
-                    results.createResource("http://www.ancientwisdoms.ac.uk"));
         assertTrue("Didn't find test triple!", results.contains(testTriple));
-        LOGGER.info("Found appropriate triple: {}", testTriple.asTriple());
+        LOGGER.info("Found test triple: {}", testTriple.asTriple());
     }
 
     @Test(expected = ExtractionException.class)
