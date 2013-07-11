@@ -43,7 +43,9 @@ import com.hp.hpl.jena.query.Dataset;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.StmtIterator;
+import com.hp.hpl.jena.rdf.model.impl.StatementImpl;
 
 public class TestTeiTripleGenerator extends TeiTripleGenerator {
 
@@ -90,15 +92,16 @@ public class TestTeiTripleGenerator extends TeiTripleGenerator {
         for (final StmtIterator i = results.listStatements(); i.hasNext();) {
             LOGGER.debug("Retrieved triple: \n{}", i.next().asTriple());
         }
-        assertTrue("Didn't find test triple!", results.contains(results
-                .createResource("http://fedora"), results
-                .createProperty("http://purl.org/dc/terms/publisher"), results
-                .createResource("http://www.ancientwisdoms.ac.uk")));
-        LOGGER.info("Found appropriate triple.");
+        final Statement testTriple =
+            new StatementImpl(results.createResource("http://fedora"), results
+                    .createProperty("http://purl.org/dc/terms/publisher"),
+                    results.createResource("http://www.ancientwisdoms.ac.uk"));
+        assertTrue("Didn't find test triple!", results.contains(testTriple));
+        LOGGER.info("Found appropriate triple: {}", testTriple.asTriple());
     }
 
     @Test
-    public void testExtractionWithProblems() throws Exception {
+    public void testExtractionWithBadRdfXml() throws Exception {
 
         final String rdfXml =
             Files.toString(new File("target/test-classes/bad-rdf.xml"), UTF_8);
