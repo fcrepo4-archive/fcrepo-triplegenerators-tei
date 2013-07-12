@@ -107,7 +107,7 @@ public class TestTeiTripleGenerator extends TeiTripleGenerator {
                 new FileInputStream(new File("target/test-classes/tei.xml"))) {
             results =
                 getProperties(mockContentNode, mockGraphSubjects)
-                        .getDefaultModel();
+                        .getNamedModel(getPropertyModelName());
         }
         assertFalse("Got no triples!", results.isEmpty());
         for (final StmtIterator i = results.listStatements(); i.hasNext();) {

@@ -69,6 +69,8 @@ import com.hp.hpl.jena.sparql.core.DatasetImpl;
  */
 public class TeiTripleGenerator implements GraphProperties {
 
+    private static final String MODEL_NAME = "tei";
+
     private static Transformer addIdsXform;
 
     private static Transformer tei2RdfXform;
@@ -121,7 +123,8 @@ public class TeiTripleGenerator implements GraphProperties {
         final Graph problems = new GraphMem();
         try (final ModelTripleHandler handler = new ModelTripleHandler()) {
             final ExtractionReport report = any23.extract(source, handler);
-            final Dataset results = new DatasetImpl(handler.getModel());
+            final Dataset results = new DatasetImpl(createDefaultModel());
+            results.addNamedModel(MODEL_NAME, handler.getModel());
             for (final Extractor<?> extractor : report.getMatchingExtractors()) {
                 for (final Issue issue : report.getExtractorIssues(extractor
                         .getDescription().getExtractorName())) {
@@ -133,7 +136,7 @@ public class TeiTripleGenerator implements GraphProperties {
                 }
             }
             if (problems.size() > 0) {
-                results.addNamedModel("problems", createModelForGraph(problems));
+                results.addNamedModel(PROBLEMS_MODEL_NAME, createModelForGraph(problems));
             }
             return results;
         }
@@ -181,15 +184,14 @@ public class TeiTripleGenerator implements GraphProperties {
             problems.add(new Triple(createURI(baseUri), PROBLEM_PREDICATE,
                     createLiteral(e.getMessage())));
         }
-        sadResults.addNamedModel("problems", createModelForGraph(problems));
+        sadResults.addNamedModel(PROBLEMS_MODEL_NAME, createModelForGraph(problems));
         return sadResults;
     }
 
 
     @Override
     public String getPropertyModelName() {
-        // TODO Auto-generated method stub
-        return null;
+        return MODEL_NAME;
     }
 
 
