@@ -23,12 +23,13 @@ import static com.hp.hpl.jena.rdf.model.ModelFactory.createDefaultModel;
 import static com.hp.hpl.jena.rdf.model.ModelFactory.createModelForGraph;
 import static java.lang.String.format;
 import static javax.xml.transform.TransformerFactory.newInstance;
+import static org.modeshape.jcr.api.JcrConstants.JCR_CONTENT;
+import static org.modeshape.jcr.api.JcrConstants.JCR_DATA;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
-import java.net.URL;
 import javax.jcr.RepositoryException;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -48,6 +49,7 @@ import org.apache.any23.source.DocumentSource;
 import org.apache.any23.writer.TripleHandlerException;
 import org.apache.any23.Any23;
 import org.apache.any23.ExtractionReport;
+import org.fcrepo.rdf.GraphProperties;
 import org.fcrepo.rdf.GraphSubjects;
 import org.fcrepo.triplegenerators.tei.xslt.LoggingErrorListener;
 import org.slf4j.Logger;
@@ -65,7 +67,7 @@ import com.hp.hpl.jena.sparql.core.DatasetImpl;
  * @author ajs6f
  * @date Jul 10, 2013
  */
-public class TeiTripleGenerator {
+public class TeiTripleGenerator implements GraphProperties {
 
     private static Transformer addIdsXform;
 
@@ -100,49 +102,6 @@ public class TeiTripleGenerator {
             final InputStream sourceStream =
                 this.getClass().getResourceAsStream("/xslt/tei2rdf.xslt")) {
             tei2RdfXform = tf.newTransformer(new StreamSource(sourceStream));
-        }
-    }
-
-
-    /**
-     * @param uri
-     * @param gs
-     * @param teiLocation
-     * @return A {@link Dataset} with extracted triples.
-     */
-    public Dataset getTriples(final javax.jcr.Node uri, final GraphSubjects gs,
-    final URL teiLocation) {
-        // TODO redo this brainless way of retrieving the resource
-        try (final InputStream teiStream = teiLocation.openStream()) {
-            return getTriples(uri, gs, teiStream);
-        } catch (final IOException e) {
-            try {
-                return exceptionRdf(gs.getGraphSubject(uri).getURI(), e);
-            } catch (final RepositoryException ee) {
-                return exceptionRdf("unknown", e);
-            }
-        }
-    }
-
-    /**
-     * @param uri
-     * @param gs
-     * @param resource
-     * @return A {@link Dataset} with extracted triples.
-     */
-    public Dataset getTriples(final javax.jcr.Node uri, final GraphSubjects gs,
-        final InputStream resource) {
-        String baseUri = "unknown";
-        try {
-            baseUri = gs.getGraphSubject(uri).getURI();
-            final byte[] rdfXml = createRDFXML(resource);
-            // TODO when Any23 supports it, use a streaming transfer between
-            // these two steps
-            return extractTriples(rdfXml, baseUri);
-        } catch (
-            TripleHandlerException | IOException | TransformerException |
-            ExtractionException | RepositoryException e) {
-            return exceptionRdf(baseUri, e);
         }
     }
 
@@ -224,5 +183,42 @@ public class TeiTripleGenerator {
         }
         sadResults.addNamedModel("problems", createModelForGraph(problems));
         return sadResults;
+    }
+
+
+    @Override
+    public String getPropertyModelName() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+
+    @Override
+    public Dataset getProperties(final javax.jcr.Node node, final GraphSubjects subjects,
+        final long offset, final int limit) throws RepositoryException {
+        return getProperties(node, subjects);
+    }
+
+
+    @Override
+    public Dataset getProperties(final javax.jcr.Node node, final GraphSubjects subjects) {
+        String baseUri = "unknown";
+        byte[] rdfXml;
+        try {
+            baseUri = subjects.getGraphSubject(node).getURI();
+            try (
+                final InputStream resource =
+                    node.getNode(JCR_CONTENT).getProperty(JCR_DATA).getBinary()
+                            .getStream()) {
+                rdfXml = createRDFXML(resource);
+            }
+            // TODO when Any23 supports it, use a streaming transfer between
+            // these two steps
+            return extractTriples(rdfXml, baseUri);
+        } catch (
+            TripleHandlerException | IOException | TransformerException |
+            ExtractionException | RepositoryException e) {
+            return exceptionRdf(baseUri, e);
+        }
     }
 }

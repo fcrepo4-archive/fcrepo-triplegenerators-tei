@@ -23,6 +23,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
+import static org.modeshape.jcr.api.JcrConstants.JCR_CONTENT;
+import static org.modeshape.jcr.api.JcrConstants.JCR_DATA;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.File;
@@ -30,7 +32,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.jcr.Binary;
 import javax.jcr.Node;
+import javax.jcr.Property;
 import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerFactoryConfigurationError;
 
@@ -51,7 +55,7 @@ import com.hp.hpl.jena.rdf.model.impl.StatementImpl;
 public class TestTeiTripleGenerator extends TeiTripleGenerator {
 
     @Mock
-    private Node mockUriNode;
+    private Node mockContentNode;
 
     @Mock
     private GraphSubjects mockGraphSubjects;
@@ -61,6 +65,12 @@ public class TestTeiTripleGenerator extends TeiTripleGenerator {
 
     @Mock
     private com.hp.hpl.jena.graph.Node mockNode;
+
+    @Mock
+    private Property mockProperty;
+
+    @Mock
+    private Binary mockBinary;
 
     private static final Statement testTriple = new StatementImpl(
             createResource("http://fedora"),
@@ -78,10 +88,15 @@ public class TestTeiTripleGenerator extends TeiTripleGenerator {
     @Before
     public void setUp() throws Exception {
         initMocks(this);
-        when(mockUriNode.getPath()).thenReturn("/test");
-        when(mockGraphSubjects.getGraphSubject(mockUriNode)).thenReturn(
+        when(mockContentNode.getPath()).thenReturn("/test");
+        when(mockGraphSubjects.getGraphSubject(mockContentNode)).thenReturn(
                 mockResource);
         when(mockResource.getURI()).thenReturn("http://fedora");
+        when(mockContentNode.getNode(JCR_CONTENT)).thenReturn(mockContentNode);
+        when(mockContentNode.getProperty(JCR_DATA)).thenReturn(mockProperty);
+        when(mockProperty.getBinary()).thenReturn(mockBinary);
+        when(mockBinary.getStream()).thenReturn(
+                new FileInputStream(new File("target/test-classes/tei.xml")));
     }
 
     @Test
@@ -91,7 +106,7 @@ public class TestTeiTripleGenerator extends TeiTripleGenerator {
             final InputStream teiStream =
                 new FileInputStream(new File("target/test-classes/tei.xml"))) {
             results =
-                getTriples(mockUriNode, mockGraphSubjects, teiStream)
+                getProperties(mockContentNode, mockGraphSubjects)
                         .getDefaultModel();
         }
         assertFalse("Got no triples!", results.isEmpty());
